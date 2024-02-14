@@ -37,7 +37,7 @@ Omega4 = [0, 0, 0];
 
 
 %% Define Damping Factor
-DampingFactor = 0.02; % Adjust this value as needed
+DampingFactor = 0.02; 
 displacementFactor = 0.005;
 
 %% Define rigid body links according to the initial conditions.
@@ -55,7 +55,7 @@ Link3_Length = norm(Link3);
 Link4_Length = norm(Link4);
 
 %% Time Setup
-dt = 0.001;
+dt = 0.01;
 totalTime = 1; 
 Iterations = totalTime/dt;
 
@@ -102,7 +102,7 @@ for step = 1:Iterations
     [Bx1,By1,Bz1] = evaluateField(x,y,z,Point1,mu0,m1_Vector,threshold);
     [Bx2,By2,Bz2] = evaluateField(x,y,z,Point2,mu0,m2_Vector,threshold);
     [Bx3,By3,Bz3] = evaluateField(x,y,z,Point3,mu0,m3_Vector,threshold);
-    [Bx4,By4,Bz4] = evaluateField(x,y,z,Point3,mu0,m4_Vector,threshold);
+    [Bx4,By4,Bz4] = evaluateField(x,y,z,Point4,mu0,m4_Vector,threshold);
 
     % Sum the magnetic fields from both dipoles
     Bx_total = BxCoil + Bx1 + Bx2 + Bx3 + Bx4;
@@ -165,7 +165,7 @@ for step = 1:Iterations
     Velocity3 = Velocity3 + (acceleration1 - DampingFactor * Velocity3) * dt;
     Velocity4 = Velocity4 + (acceleration1 - DampingFactor * Velocity4) * dt;
 
-    % Update angular velocities based on torques
+    %% Update angular velocities based on torques
     Omega1 = Omega1 + (torque1 / I) * dt;
     Omega2 = Omega2 + (torque2 / I) * dt;
     Omega3 = Omega3 + (torque3 / I) * dt;
@@ -196,7 +196,7 @@ for step = 1:Iterations
     end    
 
 
-    % Update positions based on velocities
+    %% Update positions based on velocities
     Point1 = Point1 + Velocity1 * dt;
     Point2 = Point2 + Velocity2 * dt;
     Point3 = Point3 + Velocity3 * dt;
