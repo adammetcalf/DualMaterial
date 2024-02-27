@@ -1,7 +1,4 @@
-function[Mass,I,k,Length] = MaterialProperties(radius,rho,DH,E)
-
-% Link Lengths (m)
-Length = DH(3,4);
+function[Mass,I,k,Length] = MaterialProperties(radius,rho,Length,E)
 
 
 % Link Volumes (m^3)

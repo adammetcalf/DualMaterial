@@ -17,8 +17,21 @@ clc;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Jacobean Matrix
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%            Not used, just for documentation            %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Two uses for the Jacobean matrix. 
+% 1. Tau = J^T F
+% 2. X_dot = J Theta_dot
+
+
 %% Define Rotation 
 % These may be used to adjust the starting position of the tentacle.
+
+% Note Bene, NO LONGER USED, Just here for documentation.
 
 Beta = deg2rad(90);
 
@@ -44,11 +57,18 @@ NoRot = [1 0 0 0
 
 %% Define DH Frames
 
-alpha0 = deg2rad(0); %% Initial starting position defined by this value (x axis).
-beta0 = deg2rad(0); %% Initial starting position defined by this value (y axis).
+theta0 = deg2rad(90); %% Initial World frame Z axis orientation defined by this value
+alpha0 = deg2rad(180); %% Initial starting position defined by this value (x axis).
+alpha1 = deg2rad(0);
+alpha2 = deg2rad(00);
+alpha3 = deg2rad(0);
+alpha4 = deg2rad(0);
 
-[OriginDH_x, OriginRot_z, OriginDH_y, OriginRot_Negz,...
-    Point1DH, Point2DH, Point3DH, Point4DH] = Tent4FK(alpha0,beta0);
+l1 = 0.01;
+l2 = 0.01;
+l3 = 0.01;
+l4 = 0.01;
+
 
 
 %% Define World
@@ -72,13 +92,11 @@ rho = 1070;
 E = 125000;
 
 % Evaluate the material properties of the points
-[Mass1,I1,k1,Length1] = MaterialProperties(radius,rho,Point1DH,E);
-[Mass2,I2,k2,Length2] = MaterialProperties(radius,rho,Point2DH,E);
-[Mass3,I3,k3,Length3] = MaterialProperties(radius,rho,Point3DH,E);
-[Mass4,I4,k4,Length4] = MaterialProperties(radius,rho,Point4DH,E);
+[Mass1,I1,k1,Length1] = MaterialProperties(radius,rho,l1,E);
+[Mass2,I2,k2,Length2] = MaterialProperties(radius,rho,l2,E);
+[Mass3,I3,k3,Length3] = MaterialProperties(radius,rho,l3,E);
+[Mass4,I4,k4,Length4] = MaterialProperties(radius,rho,l4,E);
 
-
-% TODO Jacobean?
 
 %% Define initial conditions
 
@@ -99,16 +117,12 @@ m4 = 0.05;                             % magnitude of magnetic moment of point 4
 
 %% Place Tentacle 
 
-% Evaluate Forward Kinematics
-Originx = StartTransform*OriginDH_x;
-Originy = Originx*OriginRot_z*OriginDH_y;
-Point1 = Originy*OriginRot_Negz*Point1DH;
-Point2 = Point1*Point2DH;
-Point3 = Point2*Point3DH;
-Point4 = Point3*Point4DH;
+% Evaluate Forward Kinematics and Jacobian
+[Origin, Point1, Point2, Point3, Point4,J] = Tent5FK(theta0,alpha0,alpha1,alpha2,alpha3,alpha4,StartTransform,l1,l2,l3,l4);
+
 
 % Extract Position in World Frame
-WorldOrigin = Originy(1:3,4);
+WorldOrigin = Origin(1:3,4);
 Point1Pos = Point1(1:3,4);
 Point2Pos = Point2(1:3,4);
 Point3Pos = Point3(1:3,4);
@@ -117,30 +131,23 @@ Point4Pos = Point4(1:3,4);
 dt = 0.01; % Time step in seconds
 time = 0:dt:2; % Total simulation time from 0 to 2 seconds
 
-for t = 1:90
+for t = 1
 
-    alpha0 = deg2rad(t);
-    beta0 = deg2rad(t);
-
-    [OriginDH_x, OriginRot_z, OriginDH_y, OriginRot_Negz,...
-    Point1DH, Point2DH, Point3DH, Point4DH] = Tent4FK(alpha0,beta0);
-
-    % Evaluate Forward Kinematics
-    Originx = StartTransform*OriginDH_x;
-    Originy = Originx*OriginRot_z*OriginDH_y;
-    Point1 = Originy*OriginRot_Negz*Point1DH;
-    Point2 = Point1*Point2DH;
-    Point3 = Point2*Point3DH;
-    Point4 = Point3*Point4DH;
-
-    % Extract Position in World Frame
-    WorldOrigin = Originy(1:3,4);
-    Point1Pos = Point1(1:3,4);
-    Point2Pos = Point2(1:3,4);
-    Point3Pos = Point3(1:3,4);
-    Point4Pos = Point4(1:3,4);
-   
+    % Calculate the force of gravity on each segment
+    F_gravity1 = Gravity.*Mass1;
+    F_gravity2 = Gravity.*Mass2;
+    F_gravity3 = Gravity.*Mass3;
+    F_gravity4 = Gravity.*Mass4;
     
+    % Update velocities of each point
+    v1 = v1 + (F_gravity1 / Mass1) * dt;
+    v2 = v2 + (F_gravity2 / Mass2) * dt;
+    v3 = v3 + (F_gravity3 / Mass3) * dt;
+    v4 = v4 + (F_gravity4 / Mass4) * dt;
+   
+    % Evaluate Forward Kinematics and Jacobian
+    [Origin, Point1, Point2, Point3, Point4,J] = Tent5FK(theta0,alpha0,alpha1,alpha2,alpha3,alpha4,StartTransform,l1,l2,l3,l4);
+
     %% Plot Tentacle
     figure(1)
     clf; % Clear the current figure
@@ -164,8 +171,7 @@ for t = 1:90
           [WorldOrigin(3),Point1Pos(3),Point2Pos(3),Point3Pos(3),Point4Pos(3)],...
            'ro-', 'MarkerSize', 4, 'MarkerFaceColor', 'r','LineWidth', 1)
     hold on
-    addOrientationArrows(Originx,scale);
-    addOrientationArrows(Originy,scale);
+    addOrientationArrows(Origin,scale);
     addOrientationArrows(Point1,scale);
     addOrientationArrows(Point2,scale);
     addOrientationArrows(Point3,scale);
