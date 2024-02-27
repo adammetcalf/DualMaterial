@@ -2,32 +2,86 @@ close all;
 clear;
 clc;
 
-syms l1 l2 l3 l4 m1 m2 m3 m4 T1 T2 T3 T4 T1t T2t T3t T4t
+syms L1 L2 m1 m2 Theta1(t) Theta2(t) t g x1 y1 x2 y2;
 
-dotx1 = l1*T1t*cos(T1);
-doty1 = l1*T1t*sin(T1);
+x1 = L1*sin(Theta1);
+x2 = x1 + L2*sin(Theta2);
 
-dotx2 = dotx1 + l2*T2t*cos(T2);
-doty2 = doty1 + l2*T2t*sin(T2);
+y1 = -L1*cos(Theta1);
+y2 = y1 - L2*cos(Theta2);
 
-dotx3 = dotx1 + dotx2 + l3*T3t*cos(T3);
-doty3 = doty1 + doty2 + l3*T3t*sin(T3);
+dotx1 = diff(x1,t);
+doty1 = diff(y1,t);
 
-dotx4 = dotx1 + dotx2 + dotx3 + l4*T4t*cos(T4);
-doty4 = doty1 + doty2 + doty3 + l4*T4t*sin(T4);
+dotx2 = diff(x2,t);
+doty2 = diff(y2,t);
+
 
 v1Square = dotx1^2+doty1^2;
 v1Square = expand(v1Square);
-v1Square = simplify(v1Square)
+v1Square = simplify(v1Square);
 
 v2Square = dotx2^2+doty2^2;
 v2Square = expand(v2Square);
-v2Square = simplify(v2Square)
+v2Square = simplify(v2Square);
 
-v3Square = dotx3^2+doty3^2;
-v3Square = expand(v3Square);
-v3Square = simplify(v3Square);
+% Form Kinetic Energies
+sym T; 
 
-v4Square = dotx4^2+doty4^2;
-v4Square = expand(v4Square);
-v4Square = simplify(v4Square)
+T = (1/2)*m1*v1Square + (1/2)*m2*v2Square;
+T = expand(T);
+T = simplify(T);
+
+% Form Potential Energies
+syms V Vstiff k;
+
+V = m1*g*y1 + m2*g*y2;
+V = expand(V);
+V = simplify(V);
+
+Vstiff = (1/2)*k*(Theta2-Theta1)^2;
+Vstiff = expand(Vstiff);
+Vstiff = simplify(Vstiff);
+
+% Form Lagrangian
+sym L;
+L = T-(V+Vstiff);
+L = expand(L);
+L = simplify(L);
+ 
+dL_wrt_dotT1 = diff(L,diff(Theta1));
+dL_wrt_dotT1 = expand(dL_wrt_dotT1);
+dL_wrt_dotT1 = simplify(dL_wrt_dotT1);
+
+dL_wrt_dotT2 = diff(L,diff(Theta2));
+dL_wrt_dotT2 = expand(dL_wrt_dotT2);
+dL_wrt_dotT2 = simplify(dL_wrt_dotT2);
+
+dt_wrt_dL_wrt_dotT1 = diff(dL_wrt_dotT1,t);
+dt_wrt_dL_wrt_dotT1 = expand(dt_wrt_dL_wrt_dotT1);
+dt_wrt_dL_wrt_dotT1 = simplify(dt_wrt_dL_wrt_dotT1);
+
+dt_wrt_dL_wrt_dotT2 = diff(dL_wrt_dotT2,t);
+dt_wrt_dL_wrt_dotT2 = expand(dt_wrt_dL_wrt_dotT2);
+dt_wrt_dL_wrt_dotT2 = simplify(dt_wrt_dL_wrt_dotT2);
+
+dL_wrt_T1 = diff(L,Theta1);
+dL_wrt_T1 = expand(dL_wrt_T1);
+dL_wrt_T1 = simplify(dL_wrt_T1);
+
+dL_wrt_T2 = diff(L,Theta2);
+dL_wrt_T2 = expand(dL_wrt_T2);
+dL_wrt_T2 = simplify(dL_wrt_T2);
+
+% calculate equations of motion
+syms EQNmotionT1 EQNmotionT2
+
+% Note, Eqns of motion are given by EQNmotionT1 = 0 and EQNmotionT2 = 0
+
+EQNmotionT1 = dt_wrt_dL_wrt_dotT1 - dL_wrt_T1;
+EQNmotionT1 = expand(EQNmotionT1);
+EQNmotionT1 = simplify(EQNmotionT1)
+
+EQNmotionT2 = dt_wrt_dL_wrt_dotT2 - dL_wrt_T2;
+EQNmotionT2 = expand(EQNmotionT2);
+EQNmotionT2 = simplify(EQNmotionT2)
