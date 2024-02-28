@@ -10,6 +10,7 @@ NumLinks = 3;
 
 %% Define World
 g = 9.81;
+b = 100;
 
 %% Define material properties
 
@@ -38,7 +39,7 @@ E = 125000;
 %angles
 Theta1 = deg2rad(45);
 Theta2 = deg2rad(45);
-Theta3 = deg2rad(45);
+Theta3 = deg2rad(90);
 
 %angular velocities
 DotTheta1 = 0;
@@ -94,7 +95,7 @@ for t = 1:totalTime
         case 2
             [Theta1,Theta2,~,DotTheta1,DotTheta2,~] = RungeKutte(g,dt,m1,L1,m2,L2,0,0,Theta1,Theta2,0,DotTheta1,DotTheta2,0,NumLinks);
         case 3  
-            [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,m1,L1,m2,L2,m3,L3,Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3,NumLinks);
+            [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,m1,L1,m2,L2,m3,L3,b,Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3,NumLinks);
         otherwise
     end
     
@@ -177,7 +178,7 @@ function [DotTheta1, DotTheta2, g1, g2] = LagrangianRHS2(m1,L1,m2,L2,g,k,RK)
 end
 
 % Lagrangian gravity only 3 bob
-function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,RK)
+function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,RK)
 
 % This function computes the right hand side of the Euler-Lagrange
 % Equations This function uses gravity only for potential energy
@@ -200,9 +201,9 @@ function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2
     A = [1 a1 a2; a3 1 a4; a5 a6 1];
     %invA = inv(A);
 
-    f1 = -(g/L1)*sin(Theta1) - (L2/L1)*((m2+m3)/(m1+m2+m3))*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L1)*((m3)/(m1+m2+m3))*sin(Theta1-Theta3)*DotTheta3^2;
-    f2 = -(g/L2)*sin(Theta2) + (L1/L2)*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L2)*((m3)/(m2+m3))*sin(Theta2-Theta3)*DotTheta3^2;
-    f3 = -(g/L3)*sin(Theta3) + (L1/L3)*sin(Theta1-Theta3)*DotTheta1^2 + (L2/L3)*sin(Theta2-Theta3)*DotTheta2^2;
+    f1 = -(g/L1)*sin(Theta1) - (L2/L1)*((m2+m3)/(m1+m2+m3))*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L1)*((m3)/(m1+m2+m3))*sin(Theta1-Theta3)*DotTheta3^2 - b*DotTheta1;
+    f2 = -(g/L2)*sin(Theta2) + (L1/L2)*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L2)*((m3)/(m2+m3))*sin(Theta2-Theta3)*DotTheta3^2 - b*DotTheta1;
+    f3 = -(g/L3)*sin(Theta3) + (L1/L3)*sin(Theta1-Theta3)*DotTheta1^2 + (L2/L3)*sin(Theta2-Theta3)*DotTheta2^2 - b*DotTheta1;
 
     F = [f1;f2;f3];
 
@@ -215,7 +216,7 @@ function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2
 end
 
 
-function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,m1,L1,m2,L2,m3,L3,Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3,NumLinks)
+function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,m1,L1,m2,L2,m3,L3,b,Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3,NumLinks)
 
 % This function applies the Runge-kutte method to obtain the new angles and
 % angular velocities. 
@@ -234,10 +235,10 @@ function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,
         case 3 %Triple Pendulum
             RK = [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3];
             % Obtain Runge-kutte constants
-            [k1(1),k1(2),k1(3),k1(4),k1(5),k1(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,RK);
-            [k2(1),k2(2),k2(3),k2(4),k2(5),k2(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,(RK + dt*k1/2));
-            [k3(1),k3(2),k3(3),k3(4),k3(5),k3(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,(RK + dt*k2/2));
-            [k4(1),k4(2),k4(3),k4(4),k4(5),k4(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,(RK + dt*k3));
+            [k1(1),k1(2),k1(3),k1(4),k1(5),k1(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,RK);
+            [k2(1),k2(2),k2(3),k2(4),k2(5),k2(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,(RK + dt*k1/2));
+            [k3(1),k3(2),k3(3),k3(4),k3(5),k3(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,(RK + dt*k2/2));
+            [k4(1),k4(2),k4(3),k4(4),k4(5),k4(6)] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,(RK + dt*k3));
 
         otherwise %Double Pendulum
             RK = [Theta1,Theta2,DotTheta1,DotTheta2];
