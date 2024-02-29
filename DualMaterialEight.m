@@ -10,7 +10,7 @@ NumLinks = 3;
 
 %% Define World
 g = 9.81;
-b = 60;
+
 
 %% Define material properties
 
@@ -28,18 +28,43 @@ rho = 1070;
 % Youngs Modulus Ecoflex 0030 (125 kPa)
 E = 125000;
 
+% Damping
+b = 20;
+
 % Evaluate the material properties of the points
 [m1,I1,k1,~] = MaterialProperties(radius,rho,L1,E);
 [m2,I2,k2,~] = MaterialProperties(radius,rho,L2,E);
 [m3,I3,k3,~] = MaterialProperties(radius,rho,L3,E);
 [~,~,k,~] = MaterialProperties(radius,rho,L1+L2,E);
 
+% Define Magnitude of Magentic moments
+mag1 = 0.05;                             % magnitude of magnetic moment of point 1
+mag2 = 0.05;                             % magnitude of magnetic moment of point 2
+mag3 = 0.05;                             % magnitude of magnetic moment of point 3
+
+%% Define Magnetic Stuff
+mu0 = 4*pi*1e-7; % Permeability of free space
+B = [0,0,25e-3]; % Magnetic field strength in Tesla (25 mT) in +z direction
+
+% Create the magnetic field
+xLow = -0.05;   yLow = -0.05;   zLow = -0.1;
+xHigh = 0.05;   yHigh = 0.05;   zHigh = 0.1;
+xIncr = 0.005;  yIncr = 0.005;  zIncr = 0.005; %steps size
+
+[x, y, z] = meshgrid(xLow:xIncr:xHigh, yLow:yIncr:yHigh, zLow:zIncr:zHigh);
+
+BxCoil = B(1)*ones(size(x));
+ByCoil = B(2)*ones(size(y));
+BzCoil = B(3)*ones(size(z));
+
+threshold = 0.001; %Singularity threshold
+
 %% Define initial Starting Conditions
 
 %angles
-Theta1 = deg2rad(120);
-Theta2 = deg2rad(120);
-Theta3 = deg2rad(90);
+Theta1 = deg2rad(180);
+Theta2 = deg2rad(180);
+Theta3 = deg2rad(170);
 
 %angular velocities
 DotTheta1 = 0;
@@ -50,7 +75,7 @@ DotTheta3 = 0;
 
 %% Time Setup
 dt = 0.01;
-totalTime = 1000; 
+totalTime = 100; 
 Iterations = totalTime/dt;
 
 %% Animation Setup
@@ -87,13 +112,20 @@ end
 hold on   
 drawnow;
 
+%% Evaluate Simulation
 for t = 1:totalTime
 
-    %% Plot the current state
+    % Sum the magnetic fields from both dipoles - Redundant atm but allows
+    % for future expansion
+    Bx_total = BxCoil;
+    By_total = ByCoil;
+    Bz_total = BzCoil;
+
+   %% Evaluate Dynamics
    
     switch NumLinks
         case 2
-            [Theta1,Theta2,~,DotTheta1,DotTheta2,~] = RungeKutte(g,dt,m1,L1,m2,L2,0,0,Theta1,Theta2,0,DotTheta1,DotTheta2,0,NumLinks);
+            [Theta1,Theta2,~,DotTheta1,DotTheta2,~] = RungeKutte(g,dt,m1,L1,m2,L2,0,0,b,Theta1,Theta2,0,DotTheta1,DotTheta2,0,NumLinks);
         case 3  
             [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,m1,L1,m2,L2,m3,L3,b,Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3,NumLinks);
         otherwise
@@ -101,9 +133,13 @@ for t = 1:totalTime
     
 
     [x0,x1,x2,x3,z0,z1,z2,z3] = getPosition(Theta1,Theta2,Theta3,L1,L2,L3);
-
+    
+    
+    %% Plot the current state
     cla(ax); % Clear the current figure
 
+    quiver3(x, y, z, Bx_total, By_total, Bz_total, 0.25, 'b','LineWidth', 0.25);
+    hold on
     switch NumLinks
         case 2
         plot3([x0,x1,x2],[0,0,0],[z0,z1,z2],...
@@ -113,7 +149,7 @@ for t = 1:totalTime
             'ro-', 'MarkerSize', 4, 'MarkerFaceColor', 'r','LineWidth', 1);
         otherwise
     end
-    hold on 
+        
     drawnow;
     pause(0.1);
 
@@ -124,7 +160,7 @@ end
 
 
 % Lagrangian gravity only 2 bob
-function [DotTheta1, DotTheta2, g1, g2] = LagrangianRHS(m1,L1,m2,L2,g,RK)
+function [DotTheta1, DotTheta2, g1, g2] = LagrangianRHS(m1,L1,m2,L2,g,b,RK)
 
 % This function computes the right hand side of the Euler-Lagrange
 % Equations This function uses gravity only for potential energy
@@ -138,8 +174,8 @@ function [DotTheta1, DotTheta2, g1, g2] = LagrangianRHS(m1,L1,m2,L2,g,RK)
     a1 = (L2/L1)*(m2/(m1+m2))*cos(Theta1-Theta2);
     a2 = (L1/L2)*cos(Theta1-Theta2);
     
-    f1 = -(L2/L1)*(m2/(m1+m2))*sin(Theta1-Theta2)*DotTheta2^2 - (g/L1)*sin(Theta1);
-    f2 = (L1/L2)*sin(Theta1-Theta2)*DotTheta1^2 - (g/L2)*sin(Theta2);
+    f1 = -(L2/L1)*(m2/(m1+m2))*sin(Theta1-Theta2)*DotTheta2^2 - (g/L1)*sin(Theta1) - b*DotTheta1;
+    f2 = (L1/L2)*sin(Theta1-Theta2)*DotTheta1^2 - (g/L2)*sin(Theta2) - b*DotTheta2;
     
     g1 = (f1 - (a1*f2))/(1-(a1*a2));
     g2 = (f2 - (a2*f1))/(1-(a1*a2));
@@ -169,15 +205,15 @@ function [DotTheta1, DotTheta2, g1, g2] = LagrangianRHS2(m1,L1,m2,L2,g,k,RK)
     a1 = (L2/L1)*(m2/(m1+m2))*cos(Theta1-Theta2);
     a2 = (L1/L2)*cos(Theta1-Theta2);
     
-    f1 = -(L2/L1)*(m2/(m1+m2))*sin(Theta1-Theta2)*DotTheta2^2 - (g/L1)*sin(Theta1) - (k/((m1+m2)*L1^2))*(Theta1-Theta2);
-    f2 = (L1/L2)*sin(Theta1-Theta2)*DotTheta1^2 - (g/L2)*sin(Theta2) - (k/(m2*L2^2))*(Theta2-Theta1);
+    f1 = -(L2/L1)*(m2/(m1+m2))*sin(Theta1-Theta2)*DotTheta2^2 - (g/L1)*sin(Theta1) - (k/((m1+m2)*L1^2))*(Theta1-Theta2)-b*DotTheta1;
+    f2 = (L1/L2)*sin(Theta1-Theta2)*DotTheta1^2 - (g/L2)*sin(Theta2) - (k/(m2*L2^2))*(Theta2-Theta1)-b*DotTheta2;
     
     g1 = (f1 - (a1*f2))/(1-(a1*a2));
     g2 = (f2 - (a2*f1))/(1-(a1*a2));
 
 end
 
-% Lagrangian gravity only 3 bob
+% Lagrangian gravity and damping only 3 bob
 function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2,L2,m3,L3,g,b,RK)
 
 % This function computes the right hand side of the Euler-Lagrange
@@ -202,8 +238,8 @@ function [DotTheta1, DotTheta2, DotTheta3, g1, g2, g3] = LagrangianRHS3(m1,L1,m2
     invA = pinv(A);
 
     f1 = -(g/L1)*sin(Theta1) - (L2/L1)*((m2+m3)/(m1+m2+m3))*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L1)*((m3)/(m1+m2+m3))*sin(Theta1-Theta3)*DotTheta3^2 - b*DotTheta1;
-    f2 = -(g/L2)*sin(Theta2) + (L1/L2)*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L2)*((m3)/(m2+m3))*sin(Theta2-Theta3)*DotTheta3^2 - b*DotTheta1;
-    f3 = -(g/L3)*sin(Theta3) + (L1/L3)*sin(Theta1-Theta3)*DotTheta1^2 + (L2/L3)*sin(Theta2-Theta3)*DotTheta2^2 - b*DotTheta1;
+    f2 = -(g/L2)*sin(Theta2) + (L1/L2)*sin(Theta1-Theta2)*DotTheta2^2 - (L3/L2)*((m3)/(m2+m3))*sin(Theta2-Theta3)*DotTheta3^2 - b*DotTheta2;
+    f3 = -(g/L3)*sin(Theta3) + (L1/L3)*sin(Theta1-Theta3)*DotTheta1^2 + (L2/L3)*sin(Theta2-Theta3)*DotTheta2^2 - b*DotTheta3;
 
     F = [f1;f2;f3];
 
@@ -220,17 +256,15 @@ function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,
 
 % This function applies the Runge-kutte method to obtain the new angles and
 % angular velocities. 
-
-    
     
     switch NumLinks
         case 2 %Double Pendulum
             RK = [Theta1,Theta2,DotTheta1,DotTheta2];
             % Obtain Runge-kutte constants
-            [k1(1),k1(2),k1(3),k1(4)] = LagrangianRHS(m1,L1,m2,L2,g,RK);
-            [k2(1),k2(2),k2(3),k2(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k1/2));
-            [k3(1),k3(2),k3(3),k3(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k2/2));
-            [k4(1),k4(2),k4(3),k4(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k3));
+            [k1(1),k1(2),k1(3),k1(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,RK);
+            [k2(1),k2(2),k2(3),k2(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k1/2));
+            [k3(1),k3(2),k3(3),k3(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k2/2));
+            [k4(1),k4(2),k4(3),k4(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k3));
 
         case 3 %Triple Pendulum
             RK = [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3];
@@ -243,10 +277,10 @@ function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,
         otherwise %Double Pendulum
             RK = [Theta1,Theta2,DotTheta1,DotTheta2];
             % Obtain Runge-kutte constants
-            [k1(1),k1(2),k1(3),k1(4)] = LagrangianRHS(m1,L1,m2,L2,g,RK);
-            [k2(1),k2(2),k2(3),k2(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k1/2));
-            [k3(1),k3(2),k3(3),k3(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k2/2));
-            [k4(1),k4(2),k4(3),k4(4)] = LagrangianRHS(m1,L1,m2,L2,g,(RK + dt*k3));
+            [k1(1),k1(2),k1(3),k1(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,RK);
+            [k2(1),k2(2),k2(3),k2(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k1/2));
+            [k3(1),k3(2),k3(3),k3(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k2/2));
+            [k4(1),k4(2),k4(3),k4(4)] = LagrangianRHS(m1,L1,m2,L2,g,b,(RK + dt*k3));
     end
     % Compute the RK4 right hand side
     R = (1/6)*dt*(k1 + 2*k2 + 2*k3 + k4);
@@ -275,6 +309,8 @@ function [Theta1,Theta2,Theta3,DotTheta1,DotTheta2,DotTheta3] = RungeKutte(g,dt,
 end
 
 function [x0,x1,x2,x3,z0,z1,z2,z3] = getPosition(Theta1,Theta2,Theta3,L1,L2,L3)
+    
+    % Evaluate the world space position of each mass.
 
     x0=0;
     z0=0;
