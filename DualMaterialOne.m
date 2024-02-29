@@ -328,3 +328,4 @@ function v_rot = rotateVector(v, k, theta)
         v_rot = v*cos(theta) + cross(k, v)*sin(theta) + k*dot(k, v)*(1 - cos(theta));
     end
 end
+
