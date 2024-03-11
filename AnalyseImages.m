@@ -3,10 +3,10 @@ clear;
 clc;
 
 %Load images
-imgBase = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\BaseThresh.png');
-imgS = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\3. MagR\SShapeThresh.png');
-imgC = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\2. FieldRtoL\CShapeThresh.png');
-imgJ = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\2. FieldRtoL\JShapeThresh.png');
+imgBase = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\BaseThresh.png');
+imgS = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\3. MagR\SShapeThresh.png');
+imgC = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\2 FieldRtoL\CShapeThresh.png');
+imgJ = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\2 FieldRtoL\JShapeThresh.png');
 
 % Define number of points to allocate
 points = 50;
@@ -77,17 +77,10 @@ CentremmC2(:,3) = CentremmC(:,3);
 %PS = analyseWorkspace(CentremmB,CentremmJ2,CentremmJ); %works
 %PS2 = analyseWorkspace(CentremmB,CentremmS2,CentremmS); %works
 %PS3 = analyseWorkspaceC(CentremmB,CentremmC, CentremmS2,CentremmS);
-PS = tipWorkspace2(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2);
+[PS,PSx,PSz] = tipWorkspace(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2);
 img = combineImages(imgBase,imgS,imgC,imgJ);
+[X3D,Y3D,Z3D] = revolveTipWorkspace(PSx,PSz);
 
-%figure(2)
-%plot(PS)
-%hold on
-%plot(PS2)
-%plot(PS3)
-%xlim([-25 25]);
-%ylim([-50 0]);
-%axis equal;
 
 %% Plot
 figure(5)
@@ -143,6 +136,23 @@ xlabel('X (mm)')
 ylabel('Z (mm)')
 axis equal
 
+figure(7)
+% Plot the 3D volumetric shape
+surf(X3D, Y3D, Z3D, 'FaceColor', 'red', 'EdgeColor', 'none','FaceAlpha', 0.5);
+hold on
+plot3(PointsmmB(:,1),PointsmmB(:,2),PointsmmB(:,3),'ko-', 'MarkerSize', 2, 'MarkerFaceColor', 'k')
+plot3(PointsmmJ(:,1),PointsmmJ(:,2),PointsmmJ(:,3),'ko-', 'MarkerSize', 2, 'MarkerFaceColor', 'k')
+plot3(PointsmmC(:,1),PointsmmC(:,2),PointsmmC(:,3),'ko-', 'MarkerSize', 2, 'MarkerFaceColor', 'k')
+plot3(PointsmmS(:,1),PointsmmS(:,2),PointsmmS(:,3),'ko-', 'MarkerSize', 2, 'MarkerFaceColor', 'k')
+axis equal; % Ensure aspect ratio is 1:1:1
+xlabel('X mm');
+ylabel('Y mm');
+zlabel('Z mm');
+xlim([-25 25]);
+ylim([-25 25]);
+zlim([-50 0]);
+%camlight left; % Add some lighting for better visualization
+%lighting phong; % Use Phong lighting for a smoother appearance
 
 
 %% Functions
@@ -407,7 +417,7 @@ function PS = analyseWorkspaceC(CentremmB,CentremmC, CentremmS2,CentremmS)
 end
 
 %For dual material
-function PS = tipWorkspace(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2)
+function [PS,PSx,PSy] = tipWorkspace(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2)
     
     Leftmm = CentremmJ2;
     Rightmm = CentremmJ;
@@ -431,14 +441,14 @@ function PS = tipWorkspace(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,C
     Leftmm = CentremmC;
      
     
-    PSx = [[CentremmC(end,1),xFit(1)]';xFit';[xFit(end),CentremmC2(end,1)]'];
-    PSy = [[CentremmC(end,3),yFit(1)]';yFit';[yFit(end),CentremmC2(end,3)]'];
+    PSx = [flip(xFit');CentremmJ2(end,1)];
+    PSy = [flip(yFit');CentremmJ2(end,3)];
     
     PS = polyshape(PSx,PSy);
 end
 
 % for double magnetic
-function PS = tipWorkspace2(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2)
+function [PS,PSx,PSy] = tipWorkspace2(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,CentremmJ,CentremmJ2)
     
     Leftmm = CentremmS2;
     Rightmm = CentremmS;
@@ -499,10 +509,11 @@ function PS = tipWorkspace2(CentremmB,CentremmC,CentremmC2,CentremmS,CentremmS2,
     %% Evaluate PS
      
     
-    PSx = [xFit';[xFit(end),CentremmC(end,1)]';xFit2';[CentremmC2(end,1),CentremmS2(end,1)]'];
-    PSy = [yFit';[yFit(end),CentremmC(end,3)]';yFit2';[CentremmC2(end,3),CentremmS2(end,3)]'];
+    PSx = [xFit';CentremmC(end,1);flip(xFit2');[CentremmC2(end,1),CentremmS2(end,1)]'];
+    PSy = [yFit';CentremmC(end,3);flip(yFit2');[CentremmC2(end,3),CentremmS2(end,3)]'];
     
     PS = polyshape(PSx,PSy);
+
 end
 
 function img = combineImages(img1,img2,img3,img4)
@@ -537,5 +548,31 @@ function img = combineImages(img1,img2,img3,img4)
             end
         end
     end
+
+end
+
+function [X3D,Y3D,Z3D] = revolveTipWorkspace(PSx,PSz)
+
+    % Convert the 2D profile to 3D by setting Y-coordinates to 0 (since it's in the X-Z plane)
+    PSy = zeros(size(PSx)); % This step is more for clarity and understanding the transition to 3D
+    
+    % Define the angles for revolution
+    angles = linspace(0, 2*pi, 360); % Full revolution around Z-axis
+
+
+    
+    % Initialize matrices to hold the coordinates of the 3D shape
+    X3D = zeros(length(PSx), length(angles));
+    Y3D = zeros(length(PSx), length(angles));
+    Z3D = zeros(length(PSx), length(angles));
+
+    
+    % Calculate the coordinates for each point in the revolution
+    for i = 1:length(PSx)
+        X3D(i, :) = PSx(i) * cos(angles); % Calculate X-coordinates
+        Y3D(i, :) = PSx(i) * sin(angles); % Calculate Y-coordinates (sine component gives the circular revolution)
+        Z3D(i, :) = repmat(PSz(i), 1, length(angles)); % Z-coordinates remain constant for each point at all angles
+    end
+    
 
 end

@@ -3,8 +3,8 @@ clear;
 clc;
 
 %Load image
-imgBase = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\Base.png');
-img = imread('C:\Users\bsgx043\Desktop\oppMagExperiment04032024\2. FieldRtoL\Cshape.png');
+imgBase = imread('C:\Users\user\Desktop\Work\oppMagExperiment04032024\Base.png');
+img = imread('C:\Users\user\Desktop\Work\oppMagExperiment04032024\2. FieldRtoL\Cshape.png');
 
 % Rect = [xmin ymin width height]
 rect = [1061.5-650,0,650*2,650*2];
