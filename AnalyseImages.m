@@ -3,10 +3,10 @@ clear;
 clc;
 
 %Load images
-imgBase = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\BaseThresh.png');
-imgS = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\3. MagR\SShapeThresh.png');
-imgC = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\2 FieldRtoL\CShapeThresh.png');
-imgJ = imread('C:\Users\user\Desktop\Work\FEBaseNdDistal\2 FieldRtoL\JShapeThresh.png');
+imgBase = imread('C:\Users\bsgx043\Desktop\FEBaseNdDistal\BaseThresh.png');
+imgS = imread('C:\Users\bsgx043\Desktop\FEBaseNdDistal\3. MagR\SShapeThresh.png');
+imgC = imread('C:\Users\bsgx043\Desktop\FEBaseNdDistal\2. FieldRtoL\CShapeThresh.png');
+imgJ = imread('C:\Users\bsgx043\Desktop\FEBaseNdDistal\2. FieldRtoL\JShapeThresh.png');
 
 % Define number of points to allocate
 points = 50;
